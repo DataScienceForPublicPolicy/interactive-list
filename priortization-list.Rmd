@@ -1,0 +1,53 @@
+---
+title: Prioritization List
+output: html_document
+---
+
+Predictions of downed trees derived from 311 requests for tree-related services. Note that predictions assume that power is available to make calls.
+
+```{r, echo = FALSE, message = FALSE, warning=FALSE}
+
+#Load packages
+  pacman::p_load(crosstalk, leaflet, DT)
+
+#Load data
+  data <- read.csv("data/sandy_trees_scored.csv")
+  data$scores <- round(100*data$scores, 1)
+  
+  
+# Wrap data frame in SharedData
+  input_data <- SharedData$new(data)
+
+# Create a filter input
+  filter_slider("scores", "Chance of a downed tree per local area", 
+                input_data, 
+                column=~scores, 
+                step = 0.01, 
+                width = 350)
+
+# Color palette
+  pal <- colorQuantile("RdYlBu", -data$scores, n = 7)
+
+# SharedData converts data so a crosstalk-enabled
+# widgets can interact
+bscols(
+  leaflet(input_data) %>% 
+    addProviderTiles(providers$Esri.WorldGrayCanvas) %>% 
+    setView(-74, 40.7, zoom = 10) %>%
+    addCircleMarkers(
+      ~long,
+      ~lat,
+      radius = 2,
+      color = ~pal(-scores),
+      stroke = FALSE, 
+      fillOpacity = 0.5),
+  datatable(input_data, 
+            extensions="Scroller", 
+            style="bootstrap", 
+            width="100%",
+            rownames = FALSE,
+    options=list(deferRender=TRUE, 
+                 scrollY=300, 
+                 scroller=FALSE))
+)
+```
